@@ -285,7 +285,7 @@ Results can be ranked using several metrics, including:
 Edge Score
 Robustness Score
 OOS Profit Factor
-Walk-forward median PF
+Rolling OOS median PF
 Profit Factor
 Sharpe
 Total PnL
@@ -297,7 +297,7 @@ The grid search can also use multiple CPU processes so larger parameter searches
 
 There is an experimental genetic-algorithm section using DEAP.
 
-The idea is to let the program search through a parameter space rather than manually testing every possible combination.
+The idea is to let the program search through a parameter space rather than manually testing every combination.
 
 Some of the parameters it can explore include:
 
@@ -340,6 +340,105 @@ The equity curve is calculated from the sequence of simulated trades.
 
 I also use the individual trade results for the out-of-sample, robustness and Monte Carlo checks.
 
+## Example Results
+
+I used the backtester on 1-minute US100 data covering roughly 3.3 years.
+
+This was one of my test configurations:
+
+```text
+Range: 14:30 → 15:00
+Trade end: 19:00
+Strategy mode: inverse
+Entry: market
+SL placement: range
+SL multiplier: 0.5
+RR: 3.0
+Risk: 0.4% per trade
+```
+
+### Backtest results
+
+| Metric             |    Result |
+| ------------------ | --------: |
+| Starting balance   |    $5,000 |
+| Final balance      | $7,816.45 |
+| Total PnL          | $2,816.45 |
+| Total trades       |       846 |
+| Win rate           |    35.46% |
+| Profit Factor      |      1.21 |
+| Sharpe Ratio       |      2.44 |
+| Max Drawdown       |     7.95% |
+| Expectancy / trade |     $3.33 |
+| Average R          |      0.14 |
+| Payoff ratio       |      2.21 |
+
+The win rate is relatively low, but winning trades were larger on average than losing trades.
+
+```text
+Average win:  $53.36
+Average loss: $24.16
+```
+
+### Equity curve
+
+![Equity Curve](results/Equity_curve.png)
+
+### Out-of-sample test
+
+I separated the last 20% of trades from the earlier data to see how the strategy behaved on data that was not part of the initial period.
+
+```text
+OOS trades:          170
+OOS win rate:        41.18%
+OOS Profit Factor:   1.48
+OOS Sharpe:          2.17
+OOS PnL:             $1,312.27
+```
+
+The chronological IS/OOS check passed the current thresholds.
+
+The rolling OOS test was more mixed:
+
+```text
+Folds:                    3
+Median OOS Profit Factor: 1.35
+Minimum OOS Profit Factor: 0.94
+Folds below PF 1.05:      33.3%
+```
+
+This is important because I do not want to judge a strategy only from its best backtest result.
+
+### Range-window robustness
+
+I also tested small shifts around the original range window.
+
+```text
+Base window: 14:30 → 15:00
+```
+
+The shifted windows produced:
+
+```text
+PF pass ratio:          100%
+Positive PnL ratio:     100%
+Median shifted PF:      1.17
+PF standard deviation:  0.01
+Robustness score:       91.5 / 100
+```
+
+The purpose of this test is to check whether the result depends too heavily on one exact timestamp.
+
+### Example trades
+
+A few trades from the same backtest:
+
+![Trade Example 1](results/Trade_1.png)
+
+![Trade Example 2](results/Trade_2.png)
+
+![Trade Example 3](results/Trade_3.png)
+
 ## Data
 
 The project is mainly designed for intraday CSV data.
@@ -370,6 +469,8 @@ and MetaTrader-style data:
 ```
 
 The timestamp convention can also be configured so the backtester knows whether a timestamp represents the beginning or end of a candle.
+
+The historical market data used for the example results is not included in this repository.
 
 ## Charts
 
@@ -409,7 +510,13 @@ The main script is:
 main_strategy.py
 ```
 
-The simplest way to run it is:
+Install the required Python packages with:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then run:
 
 ```bash
 python main_strategy.py
@@ -450,12 +557,16 @@ The repository is currently fairly simple:
 
 ```text
 .
+├── .gitignore
+├── LICENSE
+├── README.md
 ├── main_strategy.py
-├── config.json
-└── ohlc_data/
-    └── US100data/
-        └── NDX100/
-            └── NDX100_M1.csv
+├── requirements.txt
+└── results/
+    ├── Equity_curve.png
+    ├── Trade_1.png
+    ├── Trade_2.png
+    └── Trade_3.png
 ```
 
 The structure will probably change over time as I separate different parts of the project into their own modules.
